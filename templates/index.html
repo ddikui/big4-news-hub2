@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="ko" class="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>빅4 회계법인 뉴스 허브 | 삼일 PwC · 삼정 KPMG · 한영 EY · 안진 Deloitte</title>
+  
+  <!-- Pretendard Font -->
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            samil: { DEFAULT: '#e05307', light: '#fff7ed', dark: '#9a3412', border: '#fdba74' },
+            samjong: { DEFAULT: '#0051C7', light: '#eff6ff', dark: '#1e40af', border: '#93c5fd' },
+            ey: { DEFAULT: '#d97706', light: '#fefce8', dark: '#854d0e', border: '#fde047' },
+            deloitte: { DEFAULT: '#007624', light: '#f0fdf4', dark: '#166534', border: '#86efac' }
+          },
+          fontFamily: {
+            sans: ['Pretendard', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'Roboto', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen flex flex-col font-sans transition-colors duration-200">
+
+  <!-- 헤더 네비게이션 -->
+  <header class="sticky top-0 z-40 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        
+        <!-- 로고 및 서비스명 -->
+        <div class="flex items-center space-x-3 cursor-pointer" onclick="switchFirm('all')">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-amber-500 flex items-center justify-center text-white shadow-md shadow-indigo-500/20">
+            <i data-lucide="newspaper" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <div class="flex items-center space-x-2">
+              <span class="font-extrabold text-xl tracking-tight bg-gradient-to-r from-slate-900 via-blue-900 to-indigo-900 dark:from-white dark:via-blue-200 dark:to-indigo-300 bg-clip-text text-transparent">
+                BIG4 NEWS HUB
+              </span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300">
+                LIVE
+              </span>
+            </div>
+            <p class="text-xs text-slate-500 dark:text-slate-400 hidden sm:block">
+              대한민국 4대 회계법인 전문 뉴스 인텔리전스
+            </p>
+          </div>
+        </div>
+
+        <!-- 우측 액션 버튼들 -->
+        <div class="flex items-center space-x-2 sm:space-x-3">
+          <!-- 실시간 수집/새로고침 버튼 -->
+          <button id="refreshBtn" onclick="triggerRefresh()" class="inline-flex items-center space-x-1.5 px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition">
+            <i data-lucide="refresh-cw" id="refreshIcon" class="w-4 h-4"></i>
+            <span class="hidden sm:inline">실시간 수집</span>
+          </button>
+
+          <!-- 통계 모달 열기 -->
+          <button onclick="openStatsModal()" class="inline-flex items-center space-x-1.5 px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition">
+            <i data-lucide="pie-chart" class="w-4 h-4 text-indigo-500"></i>
+            <span class="hidden sm:inline">인사이트 통계</span>
+          </button>
+
+          <!-- 북마크 모아보기 토글 -->
+          <button id="bookmarkTabBtn" onclick="toggleBookmarkMode()" class="inline-flex items-center space-x-1.5 px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition">
+            <i data-lucide="bookmark" id="bookmarkTabIcon" class="w-4 h-4 text-amber-500"></i>
+            <span class="hidden sm:inline">스크랩</span>
+            <span id="bookmarkCountBadge" class="ml-1 px-1.5 py-0.2 text-[10px] font-bold rounded-full bg-amber-500 text-white">0</span>
+          </button>
+
+          <!-- CSV 다운로드 -->
+          <button onclick="exportCSV()" class="p-2 rounded-lg text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition" title="기사 목록 CSV 다운로드">
+            <i data-lucide="download" class="w-4 h-4"></i>
+          </button>
+
+          <!-- 다크/라이트 모드 토글 -->
+          <button onclick="toggleTheme()" class="p-2 rounded-lg text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition" title="테마 변경">
+            <i data-lucide="moon" id="themeMoonIcon" class="w-4 h-4 hidden dark:block"></i>
+            <i data-lucide="sun" id="themeSunIcon" class="w-4 h-4 block dark:hidden"></i>
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </header>
+
+  <!-- 회계법인 선택 탭 네비게이션 -->
+  <section class="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+      <div class="flex items-center space-x-2 sm:space-x-3 overflow-x-auto no-scrollbar py-1">
+        
+        <!-- 전체 탭 -->
+        <button onclick="switchFirm('all')" data-firm="all" class="firm-tab-btn active-tab flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-semibold transition whitespace-nowrap">
+          <i data-lucide="layers" class="w-4 h-4"></i>
+          <span>전체 빅4</span>
+          <span id="count-all" class="ml-1 text-xs px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium">0</span>
+        </button>
+
+        <!-- 삼일 PwC -->
+        <button onclick="switchFirm('samil')" data-firm="samil" class="firm-tab-btn flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-semibold transition whitespace-nowrap text-slate-600 dark:text-slate-300 hover:bg-orange-50 dark:hover:bg-orange-950/40">
+          <span class="w-2.5 h-2.5 rounded-full bg-[#e05307]"></span>
+          <span>삼일 PwC</span>
+          <span id="count-samil" class="ml-1 text-xs px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-medium">0</span>
+        </button>
+
+        <!-- 삼정 KPMG -->
+        <button onclick="switchFirm('samjong')" data-firm="samjong" class="firm-tab-btn flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-semibold transition whitespace-nowrap text-slate-600 dark:text-slate-300 hover:bg-blue-50 dark:hover:bg-blue-950/40">
+          <span class="w-2.5 h-2.5 rounded-full bg-[#0051C7]"></span>
+          <span>삼정 KPMG</span>
+          <span id="count-samjong" class="ml-1 text-xs px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-medium">0</span>
+        </button>
+
+        <!-- 한영 EY -->
+        <button onclick="switchFirm('ey')" data-firm="ey" class="firm-tab-btn flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-semibold transition whitespace-nowrap text-slate-600 dark:text-slate-300 hover:bg-amber-50 dark:hover:bg-amber-950/40">
+          <span class="w-2.5 h-2.5 rounded-full bg-[#E5A900]"></span>
+          <span>한영 EY</span>
+          <span id="count-ey" class="ml-1 text-xs px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-medium">0</span>
+        </button>
+
+        <!-- 안진 Deloitte -->
+        <button onclick="switchFirm('deloitte')" data-firm="deloitte" class="firm-tab-btn flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-semibold transition whitespace-nowrap text-slate-600 dark:text-slate-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/40">
+          <span class="w-2.5 h-2.5 rounded-full bg-[#007624]"></span>
+          <span>안진 Deloitte</span>
+          <span id="count-deloitte" class="ml-1 text-xs px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-medium">0</span>
+        </button>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- 회계법인 안내 배너 (법인 선택 시 동적 변화) -->
+  <section id="firmBanner" class="bg-gradient-to-r from-slate-900 to-indigo-950 text-white transition-all duration-300">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <div class="flex items-center space-x-3 mb-1">
+            <h1 id="bannerTitle" class="text-2xl font-extrabold tracking-tight">전체 빅4 뉴스 종합</h1>
+            <span id="bannerBadge" class="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-white/20 text-white">Big 4 Korea</span>
+          </div>
+          <p id="bannerDesc" class="text-sm text-slate-300">
+            삼일 PwC, 삼정 KPMG, 한영 EY, 안진 Deloitte 등 국내 4대 회계법인의 최신 기사를 한눈에 모아봅니다.
+          </p>
+        </div>
+
+        <div id="firmMetaInfo" class="flex items-center space-x-6 text-xs text-slate-300 border-t md:border-t-0 md:border-l border-white/10 pt-3 md:pt-0 md:pl-6">
+          <div>
+            <span class="block text-slate-400 font-normal">총 등록 기사</span>
+            <span id="metaTotalCount" class="text-base font-bold text-white">0건</span>
+          </div>
+          <div id="metaLeaderBox" class="hidden">
+            <span class="block text-slate-400 font-normal">대표자</span>
+            <span id="metaLeader" class="text-base font-bold text-white">-</span>
+          </div>
+          <div id="metaYearBox" class="hidden">
+            <span class="block text-slate-400 font-normal">설립연도</span>
+            <span id="metaYear" class="text-base font-bold text-white">-</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 메인 컨텐츠 영역 -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+    <!-- 검색 및 필터 컨트롤 바 -->
+    <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 mb-6 shadow-sm">
+      <div class="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center justify-between">
+        
+        <!-- 검색 입력창 -->
+        <div class="relative flex-1">
+          <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+          <input 
+            type="text" 
+            id="searchInput" 
+            placeholder="기사 제목, 핵심 키워드, 내용 검색 (예: 감사, M&A, 세무, AI)..." 
+            class="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white dark:focus:bg-slate-900 transition"
+            oninput="handleSearchInput(event)"
+          />
+          <button id="clearSearchBtn" onclick="clearSearch()" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
+        </div>
+
+        <!-- 필터 그룹 -->
+        <div class="flex flex-wrap items-center gap-2">
+          <!-- 언론사 선택 -->
+          <div class="relative min-w-[140px]">
+            <select id="sourceSelect" onchange="handleSourceChange()" class="w-full appearance-none pl-3 pr-8 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition cursor-pointer">
+              <option value="">모든 언론사 (전체)</option>
+            </select>
+            <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+          </div>
+
+          <!-- 정렬 선택 -->
+          <div class="relative min-w-[120px]">
+            <select id="sortSelect" onchange="handleSortChange()" class="w-full appearance-none pl-3 pr-8 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition cursor-pointer">
+              <option value="latest">최신순</option>
+              <option value="title">가나다순</option>
+            </select>
+            <i data-lucide="arrow-down-up" class="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+          </div>
+
+          <!-- 필터 리셋 버튼 -->
+          <button onclick="resetAllFilters()" class="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition" title="필터 초기화">
+            <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+          </button>
+        </div>
+
+      </div>
+
+      <!-- 카테고리 태그 칩 바 -->
+      <div class="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center space-x-1.5 overflow-x-auto no-scrollbar text-xs">
+        <span class="text-slate-400 font-medium whitespace-nowrap mr-1">주제 분야:</span>
+        <button onclick="selectCategory('')" data-category="" class="category-chip active px-3 py-1 rounded-full font-medium transition whitespace-nowrap bg-blue-600 text-white">전체</button>
+        <button onclick="selectCategory('감사/회계')" data-category="감사/회계" class="category-chip px-3 py-1 rounded-full font-medium transition whitespace-nowrap bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200">감사/회계</button>
+        <button onclick="selectCategory('세무/택스')" data-category="세무/택스" class="category-chip px-3 py-1 rounded-full font-medium transition whitespace-nowrap bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200">세무/택스</button>
+        <button onclick="selectCategory('M&A/자문')" data-category="M&A/자문" class="category-chip px-3 py-1 rounded-full font-medium transition whitespace-nowrap bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200">M&A/자문</button>
+        <button onclick="selectCategory('컨설팅/거버넌스')" data-category="컨설팅/거버넌스" class="category-chip px-3 py-1 rounded-full font-medium transition whitespace-nowrap bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200">컨설팅/AI</button>
+        <button onclick="selectCategory('ESG/사회공헌')" data-category="ESG/사회공헌" class="category-chip px-3 py-1 rounded-full font-medium transition whitespace-nowrap bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200">ESG/사회공헌</button>
+        <button onclick="selectCategory('인사/동정')" data-category="인사/동정" class="category-chip px-3 py-1 rounded-full font-medium transition whitespace-nowrap bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200">인사/채용</button>
+      </div>
+    </div>
+
+    <!-- 상태 알림 및 검색 결과 안내 바 -->
+    <div class="flex items-center justify-between text-xs sm:text-sm text-slate-500 dark:text-slate-400 mb-4 px-1">
+      <div class="flex items-center space-x-2">
+        <span id="resultCountText">기사 <strong>0</strong>건</span>
+        <span id="activeFilterBadge" class="hidden text-xs bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded-full font-medium"></span>
+      </div>
+      <div id="bookmarkModeNotice" class="hidden text-amber-600 dark:text-amber-400 font-semibold flex items-center space-x-1">
+        <i data-lucide="bookmark-check" class="w-4 h-4"></i>
+        <span>내 스크랩 기사 모아보기 모드</span>
+        <button onclick="toggleBookmarkMode()" class="ml-2 text-xs underline text-slate-500 hover:text-slate-800">전체보기로 복귀</button>
+      </div>
+    </div>
+
+    <!-- 로딩 스켈레톤 -->
+    <div id="loadingSkeleton" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-8">
+      <!-- 6개의 카드 스켈레톤 -->
+      <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 animate-pulse">
+        <div class="flex justify-between mb-3"><div class="h-5 w-20 bg-slate-200 dark:bg-slate-800 rounded"></div><div class="h-4 w-16 bg-slate-200 dark:bg-slate-800 rounded"></div></div>
+        <div class="h-6 w-5/6 bg-slate-200 dark:bg-slate-800 rounded mb-2"></div>
+        <div class="h-6 w-4/6 bg-slate-200 dark:bg-slate-800 rounded mb-4"></div>
+        <div class="h-4 w-full bg-slate-200 dark:bg-slate-800 rounded mb-2"></div>
+        <div class="h-4 w-3/4 bg-slate-200 dark:bg-slate-800 rounded mb-4"></div>
+        <div class="flex gap-2"><div class="h-4 w-12 bg-slate-200 dark:bg-slate-800 rounded-full"></div><div class="h-4 w-12 bg-slate-200 dark:bg-slate-800 rounded-full"></div></div>
+      </div>
+      <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 animate-pulse">
+        <div class="flex justify-between mb-3"><div class="h-5 w-20 bg-slate-200 dark:bg-slate-800 rounded"></div><div class="h-4 w-16 bg-slate-200 dark:bg-slate-800 rounded"></div></div>
+        <div class="h-6 w-5/6 bg-slate-200 dark:bg-slate-800 rounded mb-2"></div>
+        <div class="h-6 w-4/6 bg-slate-200 dark:bg-slate-800 rounded mb-4"></div>
+        <div class="h-4 w-full bg-slate-200 dark:bg-slate-800 rounded mb-2"></div>
+        <div class="h-4 w-3/4 bg-slate-200 dark:bg-slate-800 rounded mb-4"></div>
+        <div class="flex gap-2"><div class="h-4 w-12 bg-slate-200 dark:bg-slate-800 rounded-full"></div><div class="h-4 w-12 bg-slate-200 dark:bg-slate-800 rounded-full"></div></div>
+      </div>
+      <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 animate-pulse">
+        <div class="flex justify-between mb-3"><div class="h-5 w-20 bg-slate-200 dark:bg-slate-800 rounded"></div><div class="h-4 w-16 bg-slate-200 dark:bg-slate-800 rounded"></div></div>
+        <div class="h-6 w-5/6 bg-slate-200 dark:bg-slate-800 rounded mb-2"></div>
+        <div class="h-6 w-4/6 bg-slate-200 dark:bg-slate-800 rounded mb-4"></div>
+        <div class="h-4 w-full bg-slate-200 dark:bg-slate-800 rounded mb-2"></div>
+        <div class="h-4 w-3/4 bg-slate-200 dark:bg-slate-800 rounded mb-4"></div>
+        <div class="flex gap-2"><div class="h-4 w-12 bg-slate-200 dark:bg-slate-800 rounded-full"></div><div class="h-4 w-12 bg-slate-200 dark:bg-slate-800 rounded-full"></div></div>
+      </div>
+    </div>
+
+    <!-- 기사 카드 그리드 -->
+    <div id="newsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-8">
+      <!-- JavaScript로 동적 렌더링 -->
+    </div>
+
+    <!-- 검색 결과 없음 상태 -->
+    <div id="emptyState" class="hidden text-center py-16 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-8 my-6">
+      <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400">
+        <i data-lucide="search-x" class="w-8 h-8"></i>
+      </div>
+      <h3 class="text-base font-bold text-slate-800 dark:text-slate-200 mb-1">조건에 맞는 기사가 없습니다</h3>
+      <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">검색어를 변경하거나 다른 회계법인 및 언론사를 선택해 보세요.</p>
+      <button onclick="resetAllFilters()" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-semibold hover:bg-blue-700 transition">
+        필터 초기화
+      </button>
+    </div>
+
+    <!-- 페이지네이션 컨트롤 -->
+    <div id="pagination" class="flex items-center justify-center space-x-2 py-4">
+      <!-- JavaScript로 동적 렌더링 -->
+    </div>
+
+  </main>
+
+  <!-- 푸터 -->
+  <footer class="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 mt-auto py-6">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center sm:flex sm:justify-between sm:items-center text-xs text-slate-500 dark:text-slate-400">
+      <p class="mb-2 sm:mb-0">
+        © 2026 <strong>BIG4 NEWS HUB</strong> · 대한민국 빅4 회계법인 (삼일 PwC, 삼정 KPMG, 한영 EY, 안진 Deloitte) 뉴스 수집기
+      </p>
+      <div class="flex items-center justify-center space-x-4">
+        <span>데이터 소스: 주요 언론사 RSS & 포털</span>
+        <span>·</span>
+        <button onclick="scrollToTop()" class="hover:text-blue-600 dark:hover:text-blue-400 flex items-center space-x-1">
+          <span>맨 위로</span>
+          <i data-lucide="arrow-up" class="w-3 h-3"></i>
+        </button>
+      </div>
+    </div>
+  </footer>
+
+  <!-- 통계 및 인사이트 모달 -->
+  <div id="statsModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-4xl w-full max-h-[90vh] overflow-y-auto border border-slate-200 dark:border-slate-800 shadow-2xl p-6 sm:p-8 animate-in fade-in zoom-in-95 duration-150">
+      
+      <div class="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800 mb-6">
+        <div class="flex items-center space-x-3">
+          <div class="w-9 h-9 rounded-xl bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+            <i data-lucide="bar-chart-3" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="text-lg font-bold text-slate-900 dark:text-white">빅4 회계법인 뉴스 인텔리전스 통계</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400">회계법인별 언급 비중, 주요 토픽, 언론사 보도 점유율 분석</p>
+          </div>
+        </div>
+        <button onclick="closeStatsModal()" class="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        <!-- 법인별 기사 점유율 차트 -->
+        <div class="bg-slate-50 dark:bg-slate-800/60 rounded-2xl p-5 border border-slate-100 dark:border-slate-800">
+          <h4 class="text-sm font-bold text-slate-800 dark:text-slate-200 mb-3 flex items-center space-x-2">
+            <i data-lucide="pie-chart" class="w-4 h-4 text-blue-500"></i>
+            <span>회계법인별 기사 점유율</span>
+          </h4>
+          <div class="h-64 relative flex items-center justify-center">
+            <canvas id="firmChart"></canvas>
+          </div>
+        </div>
+
+        <!-- 카테고리별 보도 분포 차트 -->
+        <div class="bg-slate-50 dark:bg-slate-800/60 rounded-2xl p-5 border border-slate-100 dark:border-slate-800">
+          <h4 class="text-sm font-bold text-slate-800 dark:text-slate-200 mb-3 flex items-center space-x-2">
+            <i data-lucide="folder-kanban" class="w-4 h-4 text-emerald-500"></i>
+            <span>주요 업무 분야별 기사 수</span>
+          </h4>
+          <div class="h-64 relative flex items-center justify-center">
+            <canvas id="categoryChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- 주요 이슈 키워드 및 언론사 순위 -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- 주요 언론사 Top 6 차트 -->
+        <div class="bg-slate-50 dark:bg-slate-800/60 rounded-2xl p-5 border border-slate-100 dark:border-slate-800">
+          <h4 class="text-sm font-bold text-slate-800 dark:text-slate-200 mb-3 flex items-center space-x-2">
+            <i data-lucide="newspaper" class="w-4 h-4 text-amber-500"></i>
+            <span>주요 보도 언론사 순위</span>
+          </h4>
+          <div class="h-60 relative flex items-center justify-center">
+            <canvas id="sourceChart"></canvas>
+          </div>
+        </div>
+
+        <!-- 인기 키워드 태그 클라우드 -->
+        <div class="bg-slate-50 dark:bg-slate-800/60 rounded-2xl p-5 border border-slate-100 dark:border-slate-800">
+          <h4 class="text-sm font-bold text-slate-800 dark:text-slate-200 mb-3 flex items-center space-x-2">
+            <i data-lucide="tag" class="w-4 h-4 text-indigo-500"></i>
+            <span>주요 핫토픽 & 키워드</span>
+          </h4>
+          <div id="topTagsContainer" class="flex flex-wrap gap-2 pt-2">
+            <!-- JavaScript 렌더링 -->
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 기사 상세 보기 모달 -->
+  <div id="articleModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-2xl w-full border border-slate-200 dark:border-slate-800 shadow-2xl p-6 sm:p-8 animate-in fade-in zoom-in-95 duration-150">
+      
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800 mb-4">
+        <div class="flex items-center space-x-2">
+          <span id="modalFirmBadge" class="text-xs px-2.5 py-1 rounded-full font-bold"></span>
+          <span id="modalSourceBadge" class="text-xs text-slate-500 font-medium"></span>
+          <span class="text-slate-300 dark:text-slate-600">·</span>
+          <span id="modalDate" class="text-xs text-slate-400"></span>
+        </div>
+        <button onclick="closeArticleModal()" class="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <h3 id="modalTitle" class="text-xl font-bold text-slate-900 dark:text-white leading-snug mb-4"></h3>
+
+      <div class="bg-slate-50 dark:bg-slate-800/60 rounded-2xl p-4 mb-5 border border-slate-100 dark:border-slate-800">
+        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">기사 핵심 요약</h4>
+        <p id="modalSummary" class="text-sm text-slate-700 dark:text-slate-300 leading-relaxed"></p>
+      </div>
+
+      <div class="flex flex-wrap gap-1.5 mb-6" id="modalTags"></div>
+
+      <div class="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-800">
+        <button id="modalBookmarkBtn" onclick="toggleModalBookmark()" class="inline-flex items-center space-x-1.5 px-4 py-2 text-sm font-semibold rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+          <i data-lucide="bookmark" id="modalBookmarkIcon" class="w-4 h-4"></i>
+          <span id="modalBookmarkText">스크랩 저장</span>
+        </button>
+
+        <a id="modalExternalLink" href="#" target="_blank" rel="noopener noreferrer" class="inline-flex items-center space-x-1.5 px-5 py-2.5 text-sm font-semibold rounded-xl bg-blue-600 text-white hover:bg-blue-700 transition shadow-md shadow-blue-500/20">
+          <span>해당 언론사 원문 보기</span>
+          <i data-lucide="external-link" class="w-4 h-4"></i>
+        </a>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 토스트 알림 컴포넌트 -->
+  <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none flex items-center space-x-2 px-4 py-3 rounded-2xl bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-xl text-sm font-medium">
+    <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i>
+    <span id="toastMessage">알림 메시지</span>
+  </div>
+
+  <!-- JavaScript 모듈 로드 -->
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
